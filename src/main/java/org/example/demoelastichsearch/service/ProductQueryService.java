@@ -1,5 +1,6 @@
 package org.example.demoelastichsearch.service;
 
+import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
 import co.elastic.clients.elasticsearch._types.query_dsl.*;
 import co.elastic.clients.json.JsonData;
@@ -10,9 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.client.elc.NativeQueryBuilder;
-import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
-import org.springframework.data.elasticsearch.core.SearchHit;
-import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.*;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -28,9 +27,9 @@ public class ProductQueryService {
 
     public List<Product> search(String keyword, Double minPrice, Double maxPrice) {
         NativeQueryBuilder queryBuilder = NativeQuery.builder();
-        queryBuilder.withAggregation("name", Aggregation.of(a -> a
-                        .terms(ta -> ta
-                                .field("name")
+        queryBuilder.withAggregation("price", Aggregation.of(a -> a
+                        .terms(t -> t
+                                .field("price")
                         )
                 )
         );
@@ -69,14 +68,14 @@ public class ProductQueryService {
                         )
                 )
         );
-        // Phân trang (ví dụ page 0, size 10)
-        queryBuilder.withPageable(PageRequest.of(0, 10));
-        queryBuilder.withSort(Sort.by(Sort.Direction.DESC, "id"));
+//        // Phân trang (ví dụ page 0, size 10)
+        queryBuilder.withPageable(PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "price")));
+//        queryBuilder.withSort();
 
         // Thực hiện search
         NativeQuery query = queryBuilder.build();
         SearchHits<Product> hits = elasticsearchOperations.search(query, Product.class);
-
+        SearchPage<Product> productPage = SearchHitSupport.searchPageFor(hits, queryBuilder.getPageable());
         return hits.getSearchHits().stream()
                 .map(SearchHit::getContent)
                 .toList();
